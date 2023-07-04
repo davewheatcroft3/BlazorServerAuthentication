@@ -10,7 +10,7 @@
 
 <p>This component demonstrates fetching data from a service.</p>
 
-<AuthorizeViewConsideringTokenExpiry>
+<AuthorizeView>
     <Authorized>
         @if (forecasts == null)
         {
@@ -41,36 +41,30 @@
             </table>
         }
     </Authorized>
-    <TokensExpired>
+    @*<TokensExpired>
         <p>Your session has expired and cannot be refreshed. Click below to sign in again.</p>
         <button @onclick="async () => await LoginService.LoginAsync()">
             Sign In
         </button>
-    </TokensExpired>
+    </TokensExpired>*@
     <NotAuthorized>
         <p>You must be authorized to view this data. Click below to sign in.</p>
         <button @onclick="async () => await LoginService.LoginAsync()">
             Sign In
         </button>
     </NotAuthorized>
-</AuthorizeViewConsideringTokenExpiry>
+</AuthorizeView>
   
-@*
-<h1>Your session has expired!</h1>
-<button @onclick="async () => await LoginService.LoginAsync()">
-    Sign Back In
-</button>
-*@
-
 @code {
     [CascadingParameter]
-    public TokenExpiryState? TokenExpiryState { get; set; }
+    public Task<AuthenticationState?> AuthenticationState { get; set; } = null!;
 
     private WeatherForecast[]? forecasts;
 
     protected override async Task OnInitializedAsync()
     {
-        if (TokenExpiryState?.IsExpired != true)
+        var authState = await AuthenticationState;
+        if (authState?.User?.Identity?.IsAuthenticated == true)
         {
             forecasts = await ForecastService.GetForecastAsync();
         }

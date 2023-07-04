@@ -7,8 +7,8 @@ namespace BlazerServerAuthentication
 {
     public class ConfigurableErrorBoundary : ErrorBoundary, IDisposable
     {
-        [Inject]
-        private TokenExpiryStateProvider TokenExpiryStateProvider { get; set; } = null!;
+        [CascadingParameter]
+        private OAuthAuthenticationStateProvider StateProvider { get; set; } = null!;
 
         [Inject]
         private NavigationManager NavigationManager { get; set; } = null!;
@@ -36,7 +36,7 @@ namespace BlazerServerAuthentication
                 if (requestException.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                 {
                     Recover();
-                    TokenExpiryStateProvider.NotifyExpired();
+                    _ = StateProvider.ClearAuthenticationStateAsync();
                 }
             }
 

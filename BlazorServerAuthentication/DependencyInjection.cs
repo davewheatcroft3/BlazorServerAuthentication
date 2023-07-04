@@ -4,11 +4,11 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using System;
 
 namespace BlazerServerAuthentication
 {
@@ -90,7 +90,18 @@ namespace BlazerServerAuthentication
             services.AddScoped<IRefreshTokenService, RefreshTokenService>();
             services.AddScoped<ILoginService, LoginService>();
 
-            services.AddScoped<TokenExpiryStateProvider>();
+            services.AddScoped<OAuthAuthenticationStateProvider>(sp =>
+            {
+                var tokenProvider = sp.GetRequiredService<ITokenProvider>();
+                var refreshTokenService = sp.GetRequiredService<RefreshTokenService>();
+                return new OAuthAuthenticationStateProvider(tokenProvider, refreshTokenService);
+            });
+            services.AddScoped<AuthenticationStateProvider>(sp =>
+            {
+                var tokenProvider = sp.GetRequiredService<ITokenProvider>();
+                var refreshTokenService = sp.GetRequiredService<RefreshTokenService>();
+                return new OAuthAuthenticationStateProvider(tokenProvider, refreshTokenService);
+            });
 
             services.AddScoped<HttpAccessTokenHandler>();
             services.AddScoped<HttpRefreshTokenTokenHandler>();

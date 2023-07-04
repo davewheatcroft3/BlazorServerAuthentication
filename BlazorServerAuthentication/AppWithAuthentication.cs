@@ -5,10 +5,10 @@ namespace BlazerServerAuthentication
     public class AppWithAuthentication : ComponentBase
     {
         [Inject]
-        private ITokenProvider TokenProvider { get; set; } = null!;
+        internal ITokenProvider TokenProvider { get; set; } = null!;
 
         [Inject]
-        private ILoginService LoginService { get; set; } = null!;
+        public ILoginService LoginService { get; set; } = null!;
 
         [Parameter]
         public Tokens Tokens { get; set; } = null!;
