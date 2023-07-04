@@ -1,0 +1,29 @@
+﻿@inherits LayoutComponentBase
+@using BlazerServerAuthentication
+@inject ILoginService LoginService
+
+<PageTitle>Blazer Server Authentication</PageTitle>
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4">
+            <a href="https://docs.microsoft.com/aspnet/" target="_blank">About</a>
+        </div>
+
+        <article class="content px-4">
+             <ConfigurableErrorBoundary>
+                <ChildContent>
+                    @Body
+                </ChildContent>
+                <ErrorContent>
+                    <h1>Oh no an error!</h1>
+                    <p>@context.Message</p>
+                </ErrorContent>
+            </ConfigurableErrorBoundary>
+        </article>
+    </main>
+</div>

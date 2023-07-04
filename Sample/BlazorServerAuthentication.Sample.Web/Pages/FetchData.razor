@@ -1,0 +1,78 @@
+﻿@page "/fetchdata"
+@using BlazerServerAuthentication.Sample.Web.Data
+@using BlazerServerAuthentication
+@inject WeatherForecastApiClient ForecastService
+@inject ILoginService LoginService
+
+<PageTitle>Weather forecast</PageTitle>
+
+<h1>Weather forecast</h1>
+
+<p>This component demonstrates fetching data from a service.</p>
+
+<AuthorizeViewConsideringTokenExpiry>
+    <Authorized>
+        @if (forecasts == null)
+        {
+            <p><em>Loading...</em></p>
+        }
+        else
+        {
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Temp. (C)</th>
+                        <th>Temp. (F)</th>
+                        <th>Summary</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var forecast in forecasts)
+                    {
+                        <tr>
+                            <td>@forecast.Date.ToShortDateString()</td>
+                            <td>@forecast.TemperatureC</td>
+                            <td>@forecast.TemperatureF</td>
+                            <td>@forecast.Summary</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </Authorized>
+    <TokensExpired>
+        <p>Your session has expired and cannot be refreshed. Click below to sign in again.</p>
+        <button @onclick="async () => await LoginService.LoginAsync()">
+            Sign In
+        </button>
+    </TokensExpired>
+    <NotAuthorized>
+        <p>You must be authorized to view this data. Click below to sign in.</p>
+        <button @onclick="async () => await LoginService.LoginAsync()">
+            Sign In
+        </button>
+    </NotAuthorized>
+</AuthorizeViewConsideringTokenExpiry>
+  
+@*
+<h1>Your session has expired!</h1>
+<button @onclick="async () => await LoginService.LoginAsync()">
+    Sign Back In
+</button>
+*@
+
+@code {
+    [CascadingParameter]
+    public TokenExpiryState? TokenExpiryState { get; set; }
+
+    private WeatherForecast[]? forecasts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (TokenExpiryState?.IsExpired != true)
+        {
+            forecasts = await ForecastService.GetForecastAsync();
+        }
+    }
+}
