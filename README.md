@@ -4,8 +4,8 @@ system (i.e. MS Identity/Azure) in Blazor Server and get it working with the adm
 in Blazor (AuthenticationState, AuthorizedView, etc) and lots of Googling and lots of helpful articles its come to this!
 
 None of those articles however had (in my opinion) a nice complete solution working out the box for my needs. So
-Ive made this. See the sample project for a working version with the OpenID test client and the out of the box
-Blazor server sample.
+Ive made this. See the sample project for a working version with an OAuth test application and the out of the box
+Blazor server sample. You can sign up with a new user and then test the authorize setup with that user.
 
 Im not sure I can reduce the steps required here any further (Im always wary of a Nuget package that requires a
 million steps to get up and running!). Although 2 of the steps - adding AuthorizeView and adding the extended ErrorBoundary
