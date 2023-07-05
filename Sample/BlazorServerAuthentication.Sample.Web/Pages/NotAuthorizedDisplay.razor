@@ -1,0 +1,49 @@
+﻿@using BlazerServerAuthentication;
+@inject ILoginService LoginService
+
+@if (RedirectImmediately)
+{
+    @if (RedirectingContent != null)
+    {
+        @RedirectingContent
+    }
+    else
+    {
+        <p>Redirecting to login page...</p>
+    }
+}
+else
+{
+    @if (ChildContent != null)
+    {
+        @ChildContent(() => LoginService.LoginAsync())
+    }
+    else
+    {
+        <p>You are not authorized. Click below to sign in.</p>
+        <button @onclick="async () => await LoginService.LoginAsync()">
+            Sign In
+        </button>
+    }
+}
+              
+@code {
+    [Parameter]
+    public bool RedirectImmediately { get; set; } = true;
+
+    [Parameter]
+    public RenderFragment? RedirectingContent { get; set; }
+
+    [Parameter]
+    public RenderFragment<Func<Task>>? ChildContent { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (RedirectImmediately)
+        {
+            await LoginService.LoginAsync();
+        }
+
+        await base.OnInitializedAsync();
+    }
+}

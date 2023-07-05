@@ -1,51 +1,69 @@
-﻿namespace BlazerServerAuthentication
+﻿using BlazerServerAuthentication.Configuration;
+using Microsoft.Extensions.Options;
+using System.Collections.Concurrent;
+using System.Security.Claims;
+
+namespace BlazerServerAuthentication
 {
-    internal interface ITokenProvider
+    public record Tokens(string? IdToken, string? AccessToken, string? RefreshToken);
+
+    public interface ITokenProvider
     {
-        Task<string?> GetIdTokenAsync();
+        Task<Tokens?> GetTokensAsync(ClaimsPrincipal user);
 
-        Task<string?> GetAccessTokenAsync();
+        Task SetTokensAsync(ClaimsPrincipal user, Tokens tokens);
 
-        Task<string?> GetRefreshTokenAsync();
-
-        Task<string?> GetExpiresAtAsync();
-
-        Task SetTokensAsync(Tokens tokens);
+        Task ClearTokensAsync(ClaimsPrincipal user);
     }
 
     internal class TokenProvider : ITokenProvider
     {
-        private static string? _idToken;
-        private static string? _accessToken;
-        private static string? _refreshToken;
-        private static string? _expiresAt;
+        private readonly BlazorServerAuthenticationSettings _settings;
 
-        public Task<string?> GetIdTokenAsync()
+        private readonly ConcurrentDictionary<string, Tokens> _tokens = new();
+
+        public event EventHandler? TokensChanged;
+        public event EventHandler? TokensCleared;
+
+        public TokenProvider(IOptions<BlazorServerAuthenticationSettings> settings)
         {
-            return Task.FromResult(_idToken);
+            _settings = settings.Value;
         }
 
-        public Task<string?> GetAccessTokenAsync()
+        public Task<Tokens?> GetTokensAsync(ClaimsPrincipal user)
         {
-            return Task.FromResult(_accessToken);
+            var sub = user.FindFirst(_settings.UserIdentifierClaimName)?.Value;
+
+            if (sub != null)
+            {
+                if (_tokens.TryGetValue(sub, out var value))
+                {
+                    return Task.FromResult<Tokens?>(value);
+                }
+            }
+
+            return Task.FromResult<Tokens?>(null);
         }
 
-        public Task<string?> GetRefreshTokenAsync()
+        public Task SetTokensAsync(ClaimsPrincipal user, Tokens tokens)
         {
-            return Task.FromResult(_refreshToken);
+            var sub = user.FindFirst(_settings.UserIdentifierClaimName)?.Value
+                ?? throw new InvalidOperationException($"No {_settings.UserIdentifierClaimName} claim");
+            _tokens[sub] = tokens;
+
+            TokensChanged?.Invoke(this, EventArgs.Empty);
+
+            return Task.CompletedTask;
         }
 
-        public Task<string?> GetExpiresAtAsync()
+        public Task ClearTokensAsync(ClaimsPrincipal user)
         {
-            return Task.FromResult(_expiresAt);
-        }
+            var sub = user.FindFirst(_settings.UserIdentifierClaimName)?.Value
+                ?? throw new InvalidOperationException($"No {_settings.UserIdentifierClaimName} claim");
+            _tokens.Remove(sub, out _);
 
-        public Task SetTokensAsync(Tokens? tokens)
-        {
-            _idToken = tokens?.IdToken;
-            _accessToken = tokens?.AccessToken;
-            _refreshToken = tokens?.RefreshToken;
-            _expiresAt = tokens?.ExpiresAt;
+            TokensCleared?.Invoke(this, EventArgs.Empty);
+
             return Task.CompletedTask;
         }
     }

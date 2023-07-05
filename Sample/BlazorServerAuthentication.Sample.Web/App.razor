@@ -1,15 +1,18 @@
-﻿@using BlazerServerAuthentication
-@inherits AppWithAuthentication
+﻿@using BlazorServerAuthentication.Sample.Web.Pages
 
 <CascadingAuthenticationState>
     <Router AppAssembly="@typeof(App).Assembly">
         <Found Context="routeData">
             <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
                 <NotAuthorized>
-                    <p>You are not authorized. Click below to sign in.</p>
-                    <button @onclick="async () => await LoginAsync()">
-                        Sign In
-                    </button>
+                    <NotAuthorizedDisplay RedirectImmediately="false">
+                        <ChildContent Context="Login">
+                            <p>You are not authorized. Click below to sign in.</p>
+                            <button @onclick="async () => await Login()">
+                                Sign In
+                            </button>
+                        </ChildContent>
+                    </NotAuthorizedDisplay>
                 </NotAuthorized>
                 <Authorizing>
                     <p>Authorizing...</p>

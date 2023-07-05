@@ -1,53 +1,115 @@
 ﻿using BlazerServerAuthentication.Configuration;
 using IdentityModel.Client;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Options;
-using System.Globalization;
+using System.Security.Claims;
 
 namespace BlazerServerAuthentication
 {
-    public interface IRefreshTokenService
-    {
-        Task<Tokens> GetTokensCheckIfRefreshNeededAsync(HttpContext context);
-    }
-
-    internal class RefreshTokenService : IRefreshTokenService
+    internal class RefreshTokenService
     {
         private readonly HttpClient _httpClient;
         private readonly OAuthSettings _oAuthSettings;
         private readonly ITokenProvider _tokenProvider;
+        private readonly AuthenticationStateProvider _authenticationStateProvider;
+        private readonly JwtService _jwtService;
         private readonly BlazorServerAuthenticationSettings _settings;
-
-        private const string _utcFormat = "yyyy-MM-ddTHH:mm:ss.0000000+00:00";
 
         public RefreshTokenService(
             HttpClient httpClient,
             ITokenProvider tokenProvider,
+            AuthenticationStateProvider authenticationStateProvider,
+            JwtService jwtService,
             IOptions<OAuthSettings> oAuthSettings,
             IOptions<BlazorServerAuthenticationSettings> settings)
         {
             _httpClient = httpClient;
             _tokenProvider = tokenProvider;
+            _authenticationStateProvider = authenticationStateProvider;
+            _jwtService = jwtService;
             _oAuthSettings = oAuthSettings.Value;
             _settings = settings.Value;
         }
 
-        internal bool CheckTokenIsExpired(string expiresAt)
+        public async Task<string?> GetBearerTokenAsync()
         {
-            var expire = DateTime.Parse(expiresAt);
-            if (DateTime.Now.AddMinutes(_settings.RefreshExpiryClockSkewInMinutes) >= expire)
+            var state = await _authenticationStateProvider.GetAuthenticationStateAsync();
+            var tokens = await _tokenProvider.GetTokensAsync(state.User);
+
+            var token = _settings.UseIdTokenForHttpAuthentication
+                                   ? tokens?.IdToken
+                                   : tokens?.AccessToken;
+
+            return token;
+        }
+
+        public async Task<bool> RefreshTokensAsync()
+        {
+            var state = await _authenticationStateProvider.GetAuthenticationStateAsync();
+            return await RefreshTokensAsync(state.User);
+        }
+
+        public async Task<bool> RefreshTokensAsync(ClaimsPrincipal user)
+        {
+            var tokens = await _tokenProvider.GetTokensAsync(user);
+            if (tokens?.IdToken != null && tokens?.AccessToken != null && tokens?.RefreshToken != null)
             {
-                return true;
+                var tokenResponse = await RefreshWithTokenAsync(tokens.AccessToken);
+
+                if (!tokenResponse.IsError)
+                {
+                    await _tokenProvider.SetTokensAsync(
+                        user,
+                        new Tokens(
+                            tokenResponse.IdentityToken,
+                            tokenResponse.AccessToken,
+                            tokenResponse.RefreshToken ?? tokens.RefreshToken));
+
+                    return true;
+                }
             }
 
             return false;
         }
 
-        private string? ExpiresInToExpiresAt(int expiresInSeconds)
+        public async Task RevokeRefreshTokenAsync(ClaimsPrincipal user)
         {
-            var newExpiryTime = DateTime.UtcNow.AddSeconds(expiresInSeconds).ToString(_utcFormat, CultureInfo.InvariantCulture);
-            return newExpiryTime;
+            var tokens = await _tokenProvider.GetTokensAsync(user);
+
+            if (tokens?.RefreshToken != null)
+            {
+                await _httpClient.RevokeTokenAsync(new TokenRevocationRequest
+                {
+                    Address = _oAuthSettings.TokenUrl,
+                    ClientId = _oAuthSettings.ClientId,
+                    ClientSecret = _oAuthSettings.ClientSecret,
+                    Token = tokens.RefreshToken
+                });
+
+                await _tokenProvider.ClearTokensAsync(user);
+            }
+        }
+
+        public async Task<bool> CheckIfRefreshNeededAsync(ClaimsPrincipal user)
+        {
+            var tokens = await _tokenProvider.GetTokensAsync(user);
+
+            var expiry = await GetExpiryTimeAsync(tokens);
+            if (expiry != null)
+            {
+                if (ShouldRefreshToken(expiry.Value))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public async Task<bool> CheckIfRefreshNeededAsync()
+        {
+            var state = await _authenticationStateProvider.GetAuthenticationStateAsync();
+            return await CheckIfRefreshNeededAsync(state.User);
         }
 
         private async Task<TokenResponse> RefreshWithTokenAsync(string refreshToken)
@@ -63,102 +125,30 @@ namespace BlazerServerAuthentication
             return tokenResponse;
         }
 
-        public async Task<bool> RefreshTokensAsync()
+        private bool ShouldRefreshToken(DateTime expiresAt)
         {
-            // We dont check expires_at - just assume non null tokens and unauthorized
-            // coming back means try refreshing
-            var idToken = await _tokenProvider.GetIdTokenAsync();
-            var accessToken = await _tokenProvider.GetAccessTokenAsync();
-            var refreshToken = await _tokenProvider.GetRefreshTokenAsync();
-            if (idToken != null && accessToken != null && refreshToken != null)
+            if (DateTime.Now.AddMinutes(_settings.RefreshExpiryClockSkewInMinutes) >= expiresAt)
             {
-                var tokenResponse = await RefreshWithTokenAsync(refreshToken);
-
-                if (!tokenResponse.IsError)
-                {
-                    var expiresAt = ExpiresInToExpiresAt(tokenResponse.ExpiresIn);
-                    await _tokenProvider.SetTokensAsync(
-                        new Tokens(tokenResponse.IdentityToken, tokenResponse.AccessToken, tokenResponse.RefreshToken, expiresAt));
-
-                    return true;
-                }
+                return true;
             }
 
             return false;
         }
 
-        public async Task<Tokens> GetTokensCheckIfRefreshNeededAsync(HttpContext context)
+        private async Task<DateTime?> GetExpiryTimeAsync(Tokens? tokens)
         {
-            var idToken = await context.GetTokenAsync("id_token");
-            var accessToken = await context.GetTokenAsync("access_token");
-            var refreshToken = await context.GetTokenAsync("refresh_token");
-            var expiresAt = await context.GetTokenAsync("expires_at");
-
-            if (!string.IsNullOrEmpty(expiresAt) && !string.IsNullOrEmpty(refreshToken))
+            if (tokens?.IdToken == null)
             {
-                if (CheckTokenIsExpired(expiresAt))
-                {
-                    var auth = await context.AuthenticateAsync();
-
-                    if (!auth.Succeeded)
-                    {
-                        await context.SignOutAsync();
-                        return new Tokens(null, null, null, null);
-                    }
-
-                    if (refreshToken == null)
-                    {
-                        await context.SignOutAsync();
-                        return new Tokens(null, null, null, null);
-                    }
-
-                    var tokenResponse = await RefreshWithTokenAsync(refreshToken);
-
-                    if (tokenResponse.IsError)
-                    {
-                        await context.SignOutAsync();
-                        return new Tokens(null, null, null, null);
-                    }
-
-                    var newExpiryTime = ExpiresInToExpiresAt(tokenResponse.ExpiresIn);
-                    var expiresAtTokenUpdated = false;
-                    if (newExpiryTime != null)
-                    {
-                        expiresAtTokenUpdated = auth.Properties!.UpdateTokenValue("expires_at", newExpiryTime);
-                    }
-
-                    var accessTokenUpdated = false;
-                    if (tokenResponse.AccessToken != null)
-                    {
-                        accessTokenUpdated = auth.Properties!.UpdateTokenValue("access_token", tokenResponse.AccessToken);
-                    }
-
-                    var idTokenUpdated = false;
-                    if (tokenResponse.IdentityToken != null)
-                    {
-                        idTokenUpdated = auth.Properties!.UpdateTokenValue("id_token", tokenResponse.IdentityToken);
-                    }
-
-                    if (tokenResponse.RefreshToken != null)
-                    {
-                        auth.Properties!.UpdateTokenValue("refresh_token", tokenResponse.RefreshToken);
-                    }
-
-                    var tokensUpdatedCorrectly = expiresAtTokenUpdated && accessTokenUpdated && idTokenUpdated;
-
-                    if (tokensUpdatedCorrectly)
-                    {
-                        await context.SignInAsync(auth.Principal, auth.Properties);
-                    }
-
-                    idToken = tokenResponse.IdentityToken;
-                    accessToken = tokenResponse.AccessToken;
-                    refreshToken = tokenResponse.RefreshToken;
-                    expiresAt = newExpiryTime;
-                }
+                return null;
             }
 
-            return new Tokens(idToken, accessToken, refreshToken, expiresAt);
+            var decodedToken = _jwtService.DecodeToken(tokens.IdToken);
+            if (decodedToken == null)
+            {
+                return null;
+            }
+
+            return decodedToken.ValidTo;
         }
     }
 }

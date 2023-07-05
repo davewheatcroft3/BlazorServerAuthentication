@@ -12,11 +12,11 @@
 
         public string CallbackPath { get; set; } = null!;
 
-        public string SignOutUrl { get; set; } = null!;
-
-        public string Domain { get; set; } = null!;
+        public string SignOutPath { get; set; } = null!;
 
         public string TokenUrl { get; set; } = null!;
+
+        public string LogoutUrl { get; set; } = null!;
 
         public string ClientSecret { get; set; } = null!;
     }

@@ -1,10 +1,10 @@
 ﻿using BlazerServerAuthentication.Configuration;
-using BlazerServerAuthentication.Handlers;
+using BlazorServer.Events;
+using BlazorServerAuthentication;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,14 +14,14 @@ namespace BlazerServerAuthentication
 {
     public static class DependencyInjection
     {
-        public static IHttpClientWithAuthenticationBuilder AddBlazorServerAuthentication(
+        public static IServiceCollection AddBlazorServerAuthentication(
             this IServiceCollection services,
             IConfiguration configuration)
         {
             return AddBlazorServerAuthentication(services, configuration, null, null);
         }
 
-        public static IHttpClientWithAuthenticationBuilder AddBlazorServerAuthentication(
+        public static IServiceCollection AddBlazorServerAuthentication(
             this IServiceCollection services,
             IConfiguration configuration,
             Action<BlazorServerAuthenticationSettings> options)
@@ -29,16 +29,11 @@ namespace BlazerServerAuthentication
             return AddBlazorServerAuthentication(services, configuration, options, null);
         }
 
-        public static IHttpClientWithAuthenticationBuilder AddBlazorServerAuthentication(this IServiceCollection services,
+        public static IServiceCollection AddBlazorServerAuthentication(this IServiceCollection services,
             IConfiguration configuration,
             Action<BlazorServerAuthenticationSettings>? options,
             Action<OAuthSettings>? oAuthOptions)
         {
-            services.AddAuthenticationCore();
-            services.AddAuthorizationCore();
-
-            // TODO: setting for whether to use refresh token? (need refresh token service change + option in settings)
-
             services.Configure<BlazorServerAuthenticationSettings>(x =>
             {
                 if (options != null)
@@ -68,63 +63,66 @@ namespace BlazerServerAuthentication
                     options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
                     options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
                 })
-                .AddCookie()
+                .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
+                {
+                    options.EventsType = typeof(CookieEvents);
+                })
                 .AddOpenIdConnect(options =>
                 {
                     options.ResponseType = settings.ResponseType;
                     options.MetadataAddress = settings.MetadataAddress;
                     options.ClientId = settings.ClientId;
+                    options.ClientSecret = settings.ClientSecret;
                     options.RequireHttpsMetadata = settings.RequireHttpsMetadata;
                     options.GetClaimsFromUserInfoEndpoint = true;
                     options.SaveTokens = true;
-                    options.Events = new OpenIdConnectEvents
-                    {
-                        OnRedirectToIdentityProviderForSignOut = OnRedirectToIdentityProviderForSignOut
-                    };
-
-                    options.ClientSecret = settings.ClientSecret;
+                    options.EventsType = typeof(OidcEvents);
                 });
-
-            services.AddScoped<ITokenProvider, TokenProvider>();
+            
+            services.AddScoped<JwtService>();
             services.AddScoped<RefreshTokenService>();
-            services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+            services.AddSingleton<ITokenProvider, TokenProvider>();
             services.AddScoped<ILoginService, LoginService>();
-
-            services.AddScoped<OAuthAuthenticationStateProvider>(sp =>
+            services.AddScoped<IHttpClientAuthenticator>(sp =>
             {
-                var tokenProvider = sp.GetRequiredService<ITokenProvider>();
+                var refreshTokenService = sp.GetService<RefreshTokenService>()!;
+                return new HttpClientAuthenticator(refreshTokenService);
+            });
+
+            services.AddScoped<CookieEvents>();
+            services.AddScoped<OidcEvents>();
+
+            /*services.AddScoped<OAuthAuthenticationStateProvider>(sp =>
+            {
+                var tokenProvider = sp.GetRequiredService<TokenProvider>();
                 var refreshTokenService = sp.GetRequiredService<RefreshTokenService>();
                 return new OAuthAuthenticationStateProvider(tokenProvider, refreshTokenService);
             });
             services.AddScoped<AuthenticationStateProvider>(sp =>
             {
-                var tokenProvider = sp.GetRequiredService<ITokenProvider>();
+                var tokenProvider = sp.GetRequiredService<TokenProvider>();
                 var refreshTokenService = sp.GetRequiredService<RefreshTokenService>();
                 return new OAuthAuthenticationStateProvider(tokenProvider, refreshTokenService);
-            });
+            });*/
 
-            services.AddScoped<HttpAccessTokenHandler>();
-            services.AddScoped<HttpRefreshTokenTokenHandler>();
-
-            return new HttpClientWithAuthenticationBuilder(services);
-        }
-
-        public static IHttpClientBuilder AddBlazorServerAuthenticationHandlers(this IHttpClientBuilder httpClientBuilder)
-        {
-            return httpClientBuilder
-                .AddHttpMessageHandler<HttpAccessTokenHandler>()
-                .AddHttpMessageHandler<HttpRefreshTokenTokenHandler>();
+            return services;
         }
 
         public static void UseBlazorServerAuthentication(this WebApplication app)
         {
             var options = app.Services.GetRequiredService<IOptions<BlazorServerAuthenticationSettings>>();
 
-            app.MapGet(options.Value.GeneratedAppLoginRoute, async (HttpContext context, IOptions<OAuthSettings> options) =>
+            app.MapGet(options.Value.GeneratedAppLoginRoute, async (string? returnUrl, HttpContext context) =>
             {
+                string redirectUri = "/";
+                if (!string.IsNullOrWhiteSpace(returnUrl))
+                {
+                    redirectUri = returnUrl;
+                }
+
                 await context.ChallengeAsync(OpenIdConnectDefaults.AuthenticationScheme, new AuthenticationProperties()
                 {
-                    RedirectUri = options.Value.CallbackPath
+                    RedirectUri = redirectUri
                 });
             });
 
@@ -153,25 +151,6 @@ namespace BlazerServerAuthentication
                     }
                 };
             }*/
-        }
-
-        private static Task OnRedirectToIdentityProviderForSignOut(RedirectContext context)
-        {
-            var settings = context.HttpContext.RequestServices.GetRequiredService<IOptions<OAuthSettings>>().Value;
-
-            var logoutUrl = $"{context.Request.Scheme}://{context.Request.Host}{settings.CallbackPath}";
-
-            context.ProtocolMessage.IssuerAddress = $"{settings.Domain}/logout";
-            context.ProtocolMessage.SetParameter("client_id", settings.ClientId);
-            context.ProtocolMessage.SetParameter("logout_uri", logoutUrl);
-            context.ProtocolMessage.SetParameter("redirect_uri", logoutUrl);
-            context.ProtocolMessage.Scope = "openid";
-            context.ProtocolMessage.ResponseType = settings.ResponseType;
-
-            context.Properties.Items.Remove(CookieAuthenticationDefaults.AuthenticationScheme);
-            context.Properties.Items.Remove(OpenIdConnectDefaults.AuthenticationScheme);
-
-            return Task.CompletedTask;
         }
     }
 }

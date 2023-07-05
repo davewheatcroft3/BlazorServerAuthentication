@@ -6,14 +6,17 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
+builder.Services.AddCors();
 
 builder.Services
     .AddBlazorServerAuthentication(builder.Configuration, options =>
     {
         options.UseIdTokenForHttpAuthentication = true;
         options.RefreshExpiryClockSkewInMinutes = 2;
-    })
-    .AddAuthorizedHttpClient<WeatherForecastApiClient>((sp, h) =>
+        options.UserIdentifierClaimName = "cognito:username";
+    });
+
+builder.Services.AddHttpClient<WeatherForecastApiClient>((sp, h) =>
     {
         var baseUrl = builder.Configuration["Api:BaseUrl"];
         h.BaseAddress = new Uri(baseUrl!);
@@ -35,6 +38,7 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 

@@ -1,0 +1,44 @@
+﻿@inherits ErrorBoundary
+@inject NavigationManager NavigationManager
+@implements IDisposable
+
+@if (CurrentException == null)
+{
+    @ChildContent
+}
+else if (ErrorContent is not null)
+{
+    @ErrorContent(CurrentException)
+}
+else
+{
+    <div class="blazor-error-boundary"></div>
+}
+
+@code {
+    [Parameter]
+    public bool ClearErrorOnNavigation { get; set; } = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        if (ClearErrorOnNavigation)
+        {
+            NavigationManager.LocationChanged += NavigationChanged;
+        }
+    }
+
+    private void NavigationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        Recover();
+    }
+
+    public void Dispose()
+    {
+        if (ClearErrorOnNavigation)
+        {
+            NavigationManager.LocationChanged -= NavigationChanged;
+        }
+    }
+}

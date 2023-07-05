@@ -4,6 +4,8 @@
     {
         public bool UseIdTokenForHttpAuthentication { get; set; } = false;
 
+        public string UserIdentifierClaimName { get; set; } = "sub";
+
         public int RefreshExpiryClockSkewInMinutes { get; set; } = 5;
 
         public string GeneratedAppLoginRoute { get; set; } = "/Login";

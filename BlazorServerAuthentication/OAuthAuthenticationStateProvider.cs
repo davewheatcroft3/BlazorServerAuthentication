@@ -4,43 +4,59 @@ using System.Security.Claims;
 
 namespace BlazerServerAuthentication
 {
-    public class OAuthAuthenticationStateProvider : ServerAuthenticationStateProvider
+    public class OAuthAuthenticationStateProvider : ServerAuthenticationStateProvider, IDisposable
     {
-        private readonly ITokenProvider _tokenProvider;
+        private readonly TokenProvider _tokenProvider;
 
         private readonly RefreshTokenService _refreshTokenService;
 
-        internal OAuthAuthenticationStateProvider(ITokenProvider tokenProvider, RefreshTokenService refreshTokenService)
+        internal OAuthAuthenticationStateProvider(TokenProvider tokenProvider, RefreshTokenService refreshTokenService)
         {
-            // When do I load?!
             _tokenProvider = tokenProvider;
             _refreshTokenService = refreshTokenService;
+
+            _tokenProvider.TokensChanged += TokensChanged;
+            _tokenProvider.TokensCleared += TokensCleared;
         }
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
-            var expiresAt = await _tokenProvider.GetExpiresAtAsync();
-            if (expiresAt != null)
+            if (await _refreshTokenService.CheckIfRefreshNeededAsync())
             {
-                var isExpired = _refreshTokenService.CheckTokenIsExpired(expiresAt);
-                if (isExpired)
+                var refreshed = await _refreshTokenService.RefreshTokensAsync();
+                if (!refreshed)
                 {
-                    var refreshed = await _refreshTokenService.RefreshTokensAsync();
-                    if (!refreshed)
-                    {
-                        await ClearAuthenticationStateAsync();
-                    }
+                    return await ClearAuthenticationStateAsync();
                 }
             }
-
-            return await base.GetAuthenticationStateAsync();
+          
+            var state = await base.GetAuthenticationStateAsync();
+            return state;
         }
 
-        public async Task ClearAuthenticationStateAsync()
+        public async Task<AuthenticationState> ClearAuthenticationStateAsync()
         {
-            await _tokenProvider.SetTokensAsync(new Tokens(null, null, null, null));
-            var state = new AuthenticationState(new ClaimsPrincipal());
-            SetAuthenticationState(Task.FromResult(state));
+            var state = await GetAuthenticationStateAsync();
+            await _tokenProvider.ClearTokensAsync(state.User);
+            var anonymous = new AuthenticationState(new ClaimsPrincipal());
+            SetAuthenticationState(Task.FromResult(anonymous));
+            return state;
+        }
+
+        public void Dispose()
+        {
+            _tokenProvider.TokensChanged -= TokensChanged;
+            _tokenProvider.TokensCleared -= TokensCleared;
+        }
+
+        private void TokensChanged(object? sender, EventArgs e)
+        {
+            // Do anything?
+        }
+
+        private async void TokensCleared(object? sender, EventArgs e)
+        {
+            await ClearAuthenticationStateAsync();
         }
     }
 }

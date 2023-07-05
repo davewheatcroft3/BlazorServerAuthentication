@@ -41,12 +41,6 @@
             </table>
         }
     </Authorized>
-    @*<TokensExpired>
-        <p>Your session has expired and cannot be refreshed. Click below to sign in again.</p>
-        <button @onclick="async () => await LoginService.LoginAsync()">
-            Sign In
-        </button>
-    </TokensExpired>*@
     <NotAuthorized>
         <p>You must be authorized to view this data. Click below to sign in.</p>
         <button @onclick="async () => await LoginService.LoginAsync()">
@@ -63,6 +57,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await base.OnInitializedAsync();
+
         var authState = await AuthenticationState;
         if (authState?.User?.Identity?.IsAuthenticated == true)
         {
