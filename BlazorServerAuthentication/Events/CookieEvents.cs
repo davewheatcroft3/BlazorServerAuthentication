@@ -15,18 +15,6 @@ internal class CookieEvents : CookieAuthenticationEvents
 
     public override async Task ValidatePrincipal(CookieValidatePrincipalContext context)
     {
-        /*try
-        {
-            var idToken = context.HttpContext.GetTokenAsync("id_token");
-            var accessToken = context.HttpContext.GetTokenAsync("access_token");
-            var refreshToken = context.HttpContext.GetTokenAsync("refresh_token");
-        }
-        catch (Exception ex)
-        {
-            var i = 0;
-            i = i + 1;
-        }*/
-
         if (await _refreshTokenService.CheckIfRefreshNeededAsync(context.HttpContext.User))
         {
             var refreshed = await _refreshTokenService.RefreshTokensAsync(context.HttpContext.User);

@@ -12,8 +12,8 @@ builder.Services
     .AddBlazorServerAuthentication(builder.Configuration, options =>
     {
         options.UseIdTokenForHttpAuthentication = true;
-        options.RefreshExpiryClockSkewInMinutes = 2;
-        options.UserIdentifierClaimName = "cognito:username";
+        // Required for OAuth0 demo client claims
+        options.UserIdentifierClaimName = "sid";
     });
 
 builder.Services.AddHttpClient<WeatherForecastApiClient>((sp, h) =>

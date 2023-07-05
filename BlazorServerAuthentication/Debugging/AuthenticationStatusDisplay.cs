@@ -17,13 +17,19 @@ namespace BlazorServerAuthentication.Navigation
 
             if (status != null)
             {
-                AddTitleAndText(builder, "Email: ", status.Name);
+                if (status.Email != null)
+                {
+                    AddTitleAndText(builder, "Email: ", status.Email);
+                }
 
                 AddTitleAndText(builder, "Id Token: ", status.IdToken);
 
                 AddTitleAndText(builder, "Access Token: ", status.AccessToken);
 
-                AddTitleAndText(builder, "Refresh Token: ", status.RefreshToken);
+                if (status.RefreshToken != null)
+                {
+                    AddTitleAndText(builder, "Refresh Token: ", status.RefreshToken);
+                }
 
                 if (status.ExpiresAt.HasValue)
                 {

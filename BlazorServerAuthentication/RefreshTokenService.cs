@@ -44,8 +44,8 @@ namespace BlazerServerAuthentication
 
             var expires = GetExpiryTime(tokens);
 
-            var name = state.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Email)?.Value;
-            return new AuthenticationStatus(tokens.IdToken, tokens.AccessToken, tokens.RefreshToken, name, expires);
+            var email = state.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Email)?.Value;
+            return new AuthenticationStatus(tokens.IdToken, tokens.AccessToken, tokens.RefreshToken, email, expires);
         }
 
         public async Task<string?> GetBearerTokenAsync()
