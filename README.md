@@ -1,30 +1,19 @@
 # Blazor Sever OAuth/OpenID Authentication with Cookies
-After spending countless hours of my life trying to get authentication working nicely with a none MS-based 
-system (i.e. MS Identity/Azure) in Blazor Server and get it working with the admitedly nice looking features 
-in Blazor (AuthenticationState, AuthorizedView, etc) and lots of Googling and lots of helpful articles its come to this!
+After spending countless hours of my life trying to get authentication working nicely with a none MS-based system (i.e. MS Identity/Azure) in Blazor Server and get it working with the admitedly nice looking features in Blazor (AuthenticationState, AuthorizedView, etc) and lots of Googling and lots of helpful articles its come to this!
 
-None of those articles however had (in my opinion) a nice complete solution working out the box for my needs. So
-Ive made this. See the sample project for a working version with an OAuth test application and the out of the box
-Blazor server sample. You can sign up with a new user and then test the authorize setup with that user or use your Google account.
+None of those articles however had (in my opinion) a nice complete solution working out the box for my needs. So Ive made this. See the sample project for a working version with an OAuth test application and the out of the box Blazor server sample. You can sign up with a new user and then test the authorize setup with that user or use your Google account.
 If you encounter any issues that might be related to your OAuth server setup, this is a great way to test everything works:
 
 https://openidconnect.net/
 
-Im not sure I can reduce the steps required here any further (Im always wary of a Nuget package that requires a
-million steps to get up and running!). Although 2 of the steps - adding AuthorizeView and adding the extended ErrorBoundary
-I dont quite know why arent default in the Blazor sample project anyway.
-All the complexity comes from having to handle the server side where HttpContext is available, and the scoped
-SignalR runtime part where it isnt (or at least not reliably). Handling refreshing tokens and handling expired
-tokens/stale cookies in a non-invasive and working way is tricky! So essentially we perform token chicks and 
-check tokens in the _Host.cshtml (server side) and then pass down those tokens to the App.razor (SignalR runtime bit).
-If we become unauthorized and we dont fully refresh our page, we have a token provider which keeps hold of your 
-token in your scoped signal r session and allows you to keep using the app/http client. Then the next full
-page refresh will update cookies and then pass back down to App.razor and start the process again.
+This was a great reference for helping simplify my initial setup:
 
-NOTE (1): This library uses Cookies in the auth process largely because I think its the only feasible way
-of storing your tokens. I've seen use of singleton arrays of user id and token pairings and you can potentially
-add to what this library does and use local or session storage on the browser, but the issue here is youd have to
-wait until the JS runtime is setup (OnAfterRender is currently easiest way).
+https://github.com/DuendeSoftware/Duende.AccessTokenManagement/wiki/blazor-server
+
+However the complexity and the additional boilerplate was still too much for me, so I took some if its implementation ideas and used them to simplify my approach and reduce the required steps;
+
+All the complexity comes from having to handle the server side where HttpContext is available, and the scoped SignalR runtime part where it isnt (or at least not reliably). Handling refreshing tokens and handling expired tokens/stale cookies in a non-invasive and working way is tricky!
+So essentially we perform token checks and store the results in the Oidc OnTokenValidated event (server side) and then pass down those tokens to SignalR scoped runtime bit via a singleton service which stores tokens against the users unique circuit id.
 
 NOTE: I believe in .NET 8 Authentication is being re-vamped to not rely on HttpContext, which will likely make most
 of this redundant, but until then!
@@ -46,35 +35,41 @@ And
 app.UseBlazorServerAuthentication();
 ```
 
-3. Add your http clients in one of two ways:
+3. Ensure your http clients authenticate by injecting the IHttpClientAuthenticator in this library.
+Then use as follows before you http calls:
 ```cs
-builder.Services
-    .AddBlazorServerAuthentication(builder.Configuration)
-    .AddAuthorizedHttpClient<MyHttpClient>();
+await _httpClientAuthenticator.PrepareHttpClientAsync(_httpClient);
 ```
-or
-```cs
-builder.AddHttpClient<MyHttpClient>().AddBlazorAuthenticationHandlers();
-```
+(NOTE: Http message handlers CANNOT be used due to the way DI works with Blazor Server)
 
-4. In your _Host.cshtml file add the following:
-```cshtml
-@inject IRefreshTokenService RefreshTokenService
-...
+4. Add this to your _Host.cshtml file at the top:
+@using BlazorServerAuthentication.Extensions;
 @{
-    ...
-    var tokens = await RefreshTokenService.GetTokensCheckIfRefreshNeededAsync(HttpContext);
+    await HttpContext.ReadTokensFromCookie();
 }
-...
-<component type="typeof(App)" param-Tokens="tokens" render-mode="ServerPrerendered" />
-```
 
-4. In your App.razor ensure you inherit from AppWithAuthentication
+5. In your App.razor ensure you use CascadingAuthenticationState and AuthorizeRouteView
 ```razor
-@inherits AppWithAuthentication
+<CascadingAuthenticationState>
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                <NotAuthorized>
+                @* You are not authorized! *@
+                </NotAuthorized>
+            </AuthorizeRouteView>
+        </Found>
+        <NotFound>
+            <PageTitle>Not found</PageTitle>
+            <LayoutView Layout="@typeof(MainLayout)">
+                <p role="alert">Sorry, there's nothing at this address.</p>
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingAuthenticationState>
 ```
 
-5. Add this into your appsettings.json:
+6. Add this into your appsettings.json:
 ```json
 "Authentication": {
     "OAuth": {
@@ -103,68 +98,13 @@ services.AddBlazorServerAuthentication(configuration, options =>
 });
 ```
 
-### Recommended Additional Steps
-These are listed as not required as strictly they arent, but you should really do these from a user experience standpoint:
-1. Use the AuthorizeRouteView along with CascadingAuthenticationState and CascadingTokenExpiryState in your App.razor:
+## Optional Additional Step
+You can also add into your App.razor underneath the AuthorizeRouteView (in the Found render fragment):
 ```razor
-<CascadingAuthenticationState>
-    <CascadingTokenExpiryState>
-        <Router AppAssembly="@typeof(App).Assembly">
-            <Found Context="routeData">
-                <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
-                    <NotAuthorized>
-                    @* You are not authorized! *@
-                    </NotAuthorized>
-                </AuthorizeRouteView>
-            </Found>
-            <NotFound>
-                <PageTitle>Not found</PageTitle>
-                <LayoutView Layout="@typeof(MainLayout)">
-                    <p role="alert">Sorry, there's nothing at this address.</p>
-                </LayoutView>
-            </NotFound>
-        </Router>
-    </CascadingTokenExpiryState>
-</CascadingAuthenticationState>
+<AuthenticateOnNavigation></AuthenticateOnNavigation>
 ```
-CascadingAuthenticationState and AuthorizeRouteView are in-built and recommended by Microsoft anyway for authentication, but the CascadingTokenExpiryState is
-specific to this library to make available more information to handle refresh logic and token expiry.
-
-2. Use AuthorizeViewConsideringTokenExpiry instead of AuthorizeView. This behaves the same way except also considers the refresh token/token expiry as well
-as exposes a TokensExpired render fragment option.
-
-```razor
-<AuthorizeViewConsideringTokenExpiry>
-    <Authorized>
-        ...
-    </Authorized>
-    <TokensExpired>
-        ...
-    </TokensExpired>
-    <NotAuthorized>
-        ...
-    </NotAuthorized>
-</AuthorizeViewConsideringTokenExpiry>
-```
-
-3. If your http clients use EnsureSuccessfulStatusCode(), then your app will error and not gracefully tell the user to login again unless you handle it.
-You can use the default ErrorBoundary and handle yourself, or you can use ConfigurableErrorBoundary.
-Add this to your MainLayout.razor where you would usually see your @Body render fragment:
-
-```razor
-<ConfigurableErrorBoundary>
-    <ChildContent>
-        @Body
-    </ChildContent>
-    <UnauthorizedContent>
-        @* Unauthorized responses from your authorized http clients will throw exception and direct us here.*@
-        @* NOTE: Can not specify this and some ugly text with html button to login will show *@
-    </UnauthorizedContent>
-    <ErrorContent>
-        @* Uncaught exceptions. NOTE: Can not specify this and some ugly default Blazor UI appears *@
-    </ErrorContent>
-</UnauthorizedErrorBoundary>
-```
+If you would like to check token validity when navigating between pages. It will try and refresh the token
+or if not put the app into the not authorized state if each time the route changes if present.
 
 ## Additional Information
 You can configure some parts of the authentication in AddBlazorServerAuthentication method:
@@ -180,13 +120,6 @@ services.AddBlazorServerAuthentication(configuration, options =>
 ```
 
 You can inject ILoginService at any point to manually start the OAuth flow for logging in or out.
-In App.razor in the NotAuthorized section, you could do the following (login service is automatically injected in AppWithAuthentication
-and exposes LoginAsync and LogoutAsync methods:
-```razor
-<NotAuthorized>
-    @{ LoginAsync(); }
-</NotAuthorized>
-```
 
 For app wide auth use Authorize attribute in _Imports, or specific pages you want to auth - can also use AuthorizeView for parts of pages
 

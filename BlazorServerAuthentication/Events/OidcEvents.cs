@@ -17,7 +17,7 @@ public class OidcEvents : OpenIdConnectEvents
 
         OnRedirectToIdentityProviderForSignOut = CustomRedirectToIdentityProviderForSignOut;
     }
-    
+
     public override async Task TokenValidated(TokenValidatedContext context)
     {
         await _tokenProvider.SetTokensAsync(context.Principal!, new Tokens(

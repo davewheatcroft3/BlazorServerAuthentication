@@ -22,9 +22,6 @@ namespace BlazerServerAuthentication
 
         private readonly ConcurrentDictionary<string, Tokens> _tokens = new();
 
-        public event EventHandler? TokensChanged;
-        public event EventHandler? TokensCleared;
-
         public TokenProvider(IOptions<BlazorServerAuthenticationSettings> settings)
         {
             _settings = settings.Value;
@@ -47,22 +44,24 @@ namespace BlazerServerAuthentication
 
         public Task SetTokensAsync(ClaimsPrincipal user, Tokens tokens)
         {
-            var sub = user.FindFirst(_settings.UserIdentifierClaimName)?.Value
-                ?? throw new InvalidOperationException($"No {_settings.UserIdentifierClaimName} claim");
-            _tokens[sub] = tokens;
+            var sub = user.FindFirst(_settings.UserIdentifierClaimName)?.Value;
 
-            TokensChanged?.Invoke(this, EventArgs.Empty);
+            if (sub != null)
+            {
+                _tokens[sub] = tokens;
+            }
 
             return Task.CompletedTask;
         }
 
         public Task ClearTokensAsync(ClaimsPrincipal user)
         {
-            var sub = user.FindFirst(_settings.UserIdentifierClaimName)?.Value
-                ?? throw new InvalidOperationException($"No {_settings.UserIdentifierClaimName} claim");
-            _tokens.Remove(sub, out _);
+            var sub = user.FindFirst(_settings.UserIdentifierClaimName)?.Value;
 
-            TokensCleared?.Invoke(this, EventArgs.Empty);
+            if (sub != null)
+            {
+                _tokens.Remove(sub, out _);
+            }
 
             return Task.CompletedTask;
         }

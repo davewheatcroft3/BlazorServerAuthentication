@@ -92,19 +92,6 @@ namespace BlazerServerAuthentication
             services.AddScoped<CookieEvents>();
             services.AddScoped<OidcEvents>();
 
-            /*services.AddScoped<OAuthAuthenticationStateProvider>(sp =>
-            {
-                var tokenProvider = sp.GetRequiredService<TokenProvider>();
-                var refreshTokenService = sp.GetRequiredService<RefreshTokenService>();
-                return new OAuthAuthenticationStateProvider(tokenProvider, refreshTokenService);
-            });
-            services.AddScoped<AuthenticationStateProvider>(sp =>
-            {
-                var tokenProvider = sp.GetRequiredService<TokenProvider>();
-                var refreshTokenService = sp.GetRequiredService<RefreshTokenService>();
-                return new OAuthAuthenticationStateProvider(tokenProvider, refreshTokenService);
-            });*/
-
             return services;
         }
 
@@ -131,26 +118,6 @@ namespace BlazerServerAuthentication
                 await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
                 await context.SignOutAsync(OpenIdConnectDefaults.AuthenticationScheme);
             });
-
-            /*if (options.Value.CheckTokenExpiryOnNavigation)
-            {
-                var navigationManager = app.Services.GetRequiredService<NavigationManager>();
-                var refreshTokenService = app.Services.GetRequiredService<RefreshTokenService>();
-                var tokenProvider = app.Services.GetRequiredService<ITokenProvider>();
-                navigationManager.LocationChanged += async (o, e) =>
-                {
-                    var expiresAt = await tokenProvider.GetExpiresAtAsync();
-                    if (expiresAt != null)
-                    {
-                        if (refreshTokenService.CheckTokenIsExpired(expiresAt))
-                        {
-                            // Login here... clear authentication state? Call login service LoginAsync?
-                            // Should we just check with oauth provider? Only problem there is round trip call
-                            // (maybe provide enum option? NONE, EVERY_PAGE_CHECK_WITH_AUTH, ONLY_WHEN_EXPIRED)
-                        }
-                    }
-                };
-            }*/
         }
     }
 }

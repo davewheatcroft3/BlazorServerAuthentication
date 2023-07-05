@@ -11,7 +11,5 @@
         public string GeneratedAppLoginRoute { get; set; } = "/Login";
 
         public string GeneratedAppLogoutRoute { get; set; } = "/Logout";
-
-        //public bool CheckTokenExpiryOnNavigation { get; set; } = true;
     }
 }

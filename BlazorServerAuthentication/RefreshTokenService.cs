@@ -1,6 +1,7 @@
 ﻿using BlazerServerAuthentication.Configuration;
 using IdentityModel.Client;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Server;
 using Microsoft.Extensions.Options;
 using System.Security.Claims;
 
@@ -46,7 +47,15 @@ namespace BlazerServerAuthentication
         public async Task<bool> RefreshTokensAsync()
         {
             var state = await _authenticationStateProvider.GetAuthenticationStateAsync();
-            return await RefreshTokensAsync(state.User);
+            var refreshed = await RefreshTokensAsync(state.User);
+
+            if (!refreshed && _authenticationStateProvider is ServerAuthenticationStateProvider serverAuthenticationStateProvider)
+            {
+                var anonymous = new AuthenticationState(new ClaimsPrincipal());
+                serverAuthenticationStateProvider.SetAuthenticationState(Task.FromResult(anonymous));
+            }
+
+            return refreshed;
         }
 
         public async Task<bool> RefreshTokensAsync(ClaimsPrincipal user)
@@ -94,7 +103,7 @@ namespace BlazerServerAuthentication
         {
             var tokens = await _tokenProvider.GetTokensAsync(user);
 
-            var expiry = await GetExpiryTimeAsync(tokens);
+            var expiry = GetExpiryTime(tokens);
             if (expiry != null)
             {
                 if (ShouldRefreshToken(expiry.Value))
@@ -127,7 +136,7 @@ namespace BlazerServerAuthentication
 
         private bool ShouldRefreshToken(DateTime expiresAt)
         {
-            if (DateTime.Now.AddMinutes(_settings.RefreshExpiryClockSkewInMinutes) >= expiresAt)
+            if (DateTime.UtcNow.AddMinutes(_settings.RefreshExpiryClockSkewInMinutes) >= expiresAt)
             {
                 return true;
             }
@@ -135,7 +144,7 @@ namespace BlazerServerAuthentication
             return false;
         }
 
-        private async Task<DateTime?> GetExpiryTimeAsync(Tokens? tokens)
+        private DateTime? GetExpiryTime(Tokens? tokens)
         {
             if (tokens?.IdToken == null)
             {

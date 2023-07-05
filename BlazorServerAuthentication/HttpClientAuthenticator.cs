@@ -21,11 +21,7 @@ public class HttpClientAuthenticator : IHttpClientAuthenticator
     {
         if (await _refreshTokenService.CheckIfRefreshNeededAsync())
         {
-            var refreshed = await _refreshTokenService.RefreshTokensAsync();
-            if (!refreshed)
-            {
-
-            }
+            await _refreshTokenService.RefreshTokensAsync();
         }
 
         var token = await _refreshTokenService.GetBearerTokenAsync();
