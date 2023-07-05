@@ -63,7 +63,7 @@ namespace BlazerServerAuthentication
             var tokens = await _tokenProvider.GetTokensAsync(user);
             if (tokens?.IdToken != null && tokens?.AccessToken != null && tokens?.RefreshToken != null)
             {
-                var tokenResponse = await RefreshWithTokenAsync(tokens.AccessToken);
+                var tokenResponse = await RefreshWithTokenAsync(tokens.RefreshToken);
 
                 if (!tokenResponse.IsError)
                 {
