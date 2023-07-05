@@ -1,4 +1,5 @@
 ﻿using BlazerServerAuthentication.Configuration;
+using BlazorServerAuthentication.Navigation;
 using IdentityModel.Client;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server;
@@ -30,6 +31,21 @@ namespace BlazerServerAuthentication
             _jwtService = jwtService;
             _oAuthSettings = oAuthSettings.Value;
             _settings = settings.Value;
+        }
+
+        internal async Task<AuthenticationStatus?> GetAuthenticationStatusAsync()
+        {
+            var state = await _authenticationStateProvider.GetAuthenticationStateAsync();
+            var tokens = await _tokenProvider.GetTokensAsync(state.User);
+            if (tokens == null)
+            {
+                return null;
+            }
+
+            var expires = GetExpiryTime(tokens);
+
+            var name = state.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Email)?.Value;
+            return new AuthenticationStatus(tokens.IdToken, tokens.AccessToken, tokens.RefreshToken, name, expires);
         }
 
         public async Task<string?> GetBearerTokenAsync()

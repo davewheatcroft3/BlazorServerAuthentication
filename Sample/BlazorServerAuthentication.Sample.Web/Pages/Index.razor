@@ -1,15 +1,23 @@
 ﻿@page "/"
+@using BlazorServerAuthentication.Navigation
 
 <PageTitle>Index</PageTitle>
 
-<h1>Hello, world!</h1>
+<AuthorizeView>
+    <Authorized>
+        <h1>Hello, authenticated user!</h1>
 
-Welcome to your new app.
+        <br/>
 
-<p>This page isnt authorized</p>
+        <AuthenticationStatusDisplay></AuthenticationStatusDisplay>
+    </Authorized>
+    <NotAuthorized>
+        <h1>Hello, unauthenticated user!</h1>
+    </NotAuthorized>
+</AuthorizeView>
 
-<p>There entire counter page is authorized</p>
+<p>This page doesn't require authentication</p>
 
-<p>The Fetch data page is partly authorized</p>
+<p>The entire counter page requires authentication</p>
 
-<SurveyPrompt Title="How is Blazor working for you?" />
+<p>The Fetch data page requires authentication only for the data table</p>
