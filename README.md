@@ -15,7 +15,9 @@ However the complexity and the additional boilerplate was still too much for me,
 All the complexity comes from having to handle the server side where HttpContext is available, and the scoped SignalR runtime part where it isnt (or at least not reliably). Handling refreshing tokens and handling expired tokens/stale cookies in a non-invasive and working way is tricky!
 So essentially we perform token checks and store the results in the Oidc OnTokenValidated event (server side) and then pass down those tokens to SignalR scoped runtime bit via a singleton service which stores tokens against the users unique circuit id.
 
-NOTE: I believe in .NET 8 Authentication is being re-vamped to not rely on HttpContext, which will likely make most
+NOTE (1): The only other step I think can feasibly be removed is the dependency on IHttpClientAuthenticator in your API Clients. Ive looked at source generation but that still requires addition to your code. Any other ideas welcome! 
+
+NOTE (2): I believe in .NET 8 Authentication is being re-vamped to not rely on HttpContext, which will likely make most
 of this redundant, but until then!
 
 ## Installation
