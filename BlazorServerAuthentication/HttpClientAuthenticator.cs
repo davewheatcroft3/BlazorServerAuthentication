@@ -8,7 +8,7 @@ public interface IHttpClientAuthenticator
     Task PrepareHttpClientAsync(HttpClient httpClient);
 }
 
-public class HttpClientAuthenticator : IHttpClientAuthenticator
+internal class HttpClientAuthenticator : IHttpClientAuthenticator
 {
     private readonly RefreshTokenService _refreshTokenService;
 

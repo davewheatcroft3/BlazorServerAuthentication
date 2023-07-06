@@ -22,9 +22,9 @@ namespace BlazorServerAuthentication.Navigation
                     AddTitleAndText(builder, "Email: ", status.Email);
                 }
 
-                AddTitleAndText(builder, "Id Token: ", status.IdToken);
+                AddTitleAndText(builder, "Id Token: ", status.IdToken ?? string.Empty);
 
-                AddTitleAndText(builder, "Access Token: ", status.AccessToken);
+                AddTitleAndText(builder, "Access Token: ", status.AccessToken ?? string.Empty);
 
                 if (status.RefreshToken != null)
                 {

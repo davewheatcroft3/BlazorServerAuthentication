@@ -11,6 +11,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlazorServerAuthentication.
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Sample", "Sample", "{5845D789-B8B3-4023-B554-44FBEE3A27D5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlazorServerAuthentication.SourceGeneration", "BlazorServerAuthentication.SourceGeneration\BlazorServerAuthentication.SourceGeneration.csproj", "{1C4CD9AE-4D24-45BD-8457-B55096AFB769}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlazorServerAuthentication.SourceGeneration.Test", "BlazorServer.SourceGeneration.Test\BlazorServerAuthentication.SourceGeneration.Test.csproj", "{DAB4299A-53DA-4366-BC01-CD5EAF51D384}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -29,6 +33,14 @@ Global
 		{772BAA30-9878-4714-8DC1-130429C267AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{772BAA30-9878-4714-8DC1-130429C267AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{772BAA30-9878-4714-8DC1-130429C267AF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1C4CD9AE-4D24-45BD-8457-B55096AFB769}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1C4CD9AE-4D24-45BD-8457-B55096AFB769}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1C4CD9AE-4D24-45BD-8457-B55096AFB769}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1C4CD9AE-4D24-45BD-8457-B55096AFB769}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DAB4299A-53DA-4366-BC01-CD5EAF51D384}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DAB4299A-53DA-4366-BC01-CD5EAF51D384}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DAB4299A-53DA-4366-BC01-CD5EAF51D384}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DAB4299A-53DA-4366-BC01-CD5EAF51D384}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
