@@ -59,6 +59,7 @@ namespace BlazerServerAuthentication
 
             services.AddAuthentication(options =>
                 {
+                    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
                     options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
                     options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
                     options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
@@ -77,6 +78,9 @@ namespace BlazerServerAuthentication
                     options.GetClaimsFromUserInfoEndpoint = true;
                     options.SaveTokens = true;
                     options.EventsType = typeof(OidcEvents);
+
+                    options.MapInboundClaims = false;
+                    options.ResponseMode = "query";
                 });
             
             services.AddScoped<JwtService>();
@@ -91,6 +95,8 @@ namespace BlazerServerAuthentication
 
             services.AddScoped<CookieEvents>();
             services.AddScoped<OidcEvents>();
+
+            services.AddTransient<RecoverTokensFromCookiesMiddleware>();
 
             return services;
         }
@@ -118,6 +124,8 @@ namespace BlazerServerAuthentication
                 await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
                 await context.SignOutAsync(OpenIdConnectDefaults.AuthenticationScheme);
             });
+
+            app.UseMiddleware<RecoverTokensFromCookiesMiddleware>();
         }
     }
 }

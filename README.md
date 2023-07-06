@@ -42,34 +42,7 @@ await _httpClientAuthenticator.PrepareHttpClientAsync(_httpClient);
 ```
 (NOTE: Http message handlers CANNOT be used due to the way DI works with Blazor Server)
 
-4. Add this to your _Host.cshtml file at the top:
-@using BlazorServerAuthentication.Extensions;
-@{
-    await HttpContext.ReadTokensFromCookie();
-}
-
-5. In your App.razor ensure you use CascadingAuthenticationState and AuthorizeRouteView
-```razor
-<CascadingAuthenticationState>
-    <Router AppAssembly="@typeof(App).Assembly">
-        <Found Context="routeData">
-            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
-                <NotAuthorized>
-                @* You are not authorized! *@
-                </NotAuthorized>
-            </AuthorizeRouteView>
-        </Found>
-        <NotFound>
-            <PageTitle>Not found</PageTitle>
-            <LayoutView Layout="@typeof(MainLayout)">
-                <p role="alert">Sorry, there's nothing at this address.</p>
-            </LayoutView>
-        </NotFound>
-    </Router>
-</CascadingAuthenticationState>
-```
-
-6. Add this into your appsettings.json:
+4. Add this into your appsettings.json:
 ```json
 "Authentication": {
     "OAuth": {
@@ -98,7 +71,28 @@ services.AddBlazorServerAuthentication(configuration, options =>
 });
 ```
 
-## Optional Additional Step
+5. In your App.razor ensure you use CascadingAuthenticationState and AuthorizeRouteView
+```razor
+<CascadingAuthenticationState>
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                <NotAuthorized>
+                @* You are not authorized! *@
+                </NotAuthorized>
+            </AuthorizeRouteView>
+        </Found>
+        <NotFound>
+            <PageTitle>Not found</PageTitle>
+            <LayoutView Layout="@typeof(MainLayout)">
+                <p role="alert">Sorry, there's nothing at this address.</p>
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingAuthenticationState>
+```
+
+## Optional Additional Steps
 You can also add into your App.razor underneath the AuthorizeRouteView (in the Found render fragment):
 ```razor
 <AuthenticateOnNavigation></AuthenticateOnNavigation>

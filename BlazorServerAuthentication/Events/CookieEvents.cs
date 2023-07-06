@@ -15,9 +15,9 @@ internal class CookieEvents : CookieAuthenticationEvents
 
     public override async Task ValidatePrincipal(CookieValidatePrincipalContext context)
     {
-        if (await _refreshTokenService.CheckIfRefreshNeededAsync(context.HttpContext.User))
+        if (await _refreshTokenService.CheckIfRefreshNeededAsync(context.Principal!))
         {
-            var refreshed = await _refreshTokenService.RefreshTokensAsync(context.HttpContext.User);
+            var refreshed = await _refreshTokenService.RefreshTokensAsync(context.Principal!);
             if (!refreshed)
             {
                 context.RejectPrincipal();
@@ -27,7 +27,7 @@ internal class CookieEvents : CookieAuthenticationEvents
                 context.ShouldRenew = true;
             }
         }
-        
+
         await base.ValidatePrincipal(context);
     }
 
