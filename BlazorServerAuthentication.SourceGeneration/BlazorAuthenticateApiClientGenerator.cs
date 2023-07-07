@@ -13,7 +13,7 @@ namespace BlazorAuthenticate.SourceGeneration
     public class BlazorAuthenticateApiClientGenerator : ISourceGenerator
     {
         private const string classAttributeName = "BlazorAuthenticatedApiClient";
-        private const string methodAttributeName = "BlazorAuthenticate";
+        private const string methodAttributeName = "BlazorDontAuthenticate";
 
         private const string classAttributeText = @"
 using System;
@@ -36,9 +36,9 @@ using System;
 namespace BlazorAuthenticate
 {
     [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
-    sealed class BlazorAuthenticateAttribute : Attribute
+    sealed class BlazorDontAuthenticateAttribute : Attribute
     {
-        public BlazorAuthenticateAttribute()
+        public BlazorDontAuthenticateAttribute()
         {
         }
     }
@@ -47,19 +47,19 @@ namespace BlazorAuthenticate
 
         public void Initialize(GeneratorInitializationContext context)
         {
-/*#if DEBUG
+#if DEBUG
             if (!Debugger.IsAttached)
             {
                 Debugger.Launch();
             }
-#endif*/
+#endif
         }
 
         public void Execute(GeneratorExecutionContext context)
         {
             // add the attribute text
             context.AddSource("BlazorAuthenticatedApiClientAttribute", classAttributeText);
-            context.AddSource("BlazorAuthenticateAttribute", methodAttributeText);
+            context.AddSource("BlazorDontAuthenticateAttribute", methodAttributeText);
 
             var treesWithClassWithAttributes = context.Compilation.SyntaxTrees
                 .Where(st => st.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>()
@@ -103,11 +103,9 @@ namespace BlazorAuthenticate
 
                         if (methodNodes == null)
                         {
-                            continue;
+                            var method = GenerateMethod(classMethod);
+                            methods.Add(method);
                         }
-
-                        var method = GenerateMethod(classMethod);
-                        methods.Add(method);
                     }
 
                     var generatedClass = GenerateClass(declaredClass, methods);

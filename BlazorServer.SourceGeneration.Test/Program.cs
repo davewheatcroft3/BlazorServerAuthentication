@@ -5,18 +5,22 @@ namespace BlazorAuthenticate.SourceGeneration.Test
     [BlazorAuthenticatedApiClient]
     public partial class ApiClient
     {
-        [BlazorAuthenticate]
         private async Task _GetAsync()
         {
             await Task.CompletedTask;
             Console.WriteLine($"Test Get");
         }
 
-        [BlazorAuthenticate]
         private async Task<int> _PostAsync()
         {
             Console.WriteLine($"Test Post");
             return await Task.FromResult(1);
+        }
+
+        [BlazorDontAuthenticate]
+        private void DontAuthenticate()
+        {
+
         }
     }
 
