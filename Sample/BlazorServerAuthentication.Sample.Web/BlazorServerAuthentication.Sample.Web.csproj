@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\BlazorServerAuthentication.SourceGeneration\BlazorServerAuthentication.SourceGeneration.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\..\BlazorServerAuthentication\BlazorServerAuthentication.csproj" />
   </ItemGroup>
 

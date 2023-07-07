@@ -2,21 +2,11 @@ using BlazorServerAuthentication;
 
 namespace BlazerServerAuthentication.Sample.Web.Data
 {
-    public class WeatherForecastApiClient
+    [BlazorAuthenticatedApiClient]
+    public partial class WeatherForecastApiClient
     {
-        private readonly HttpClient _httpClient;
-        private readonly IHttpClientAuthenticator _httpClientAuthenticator;
-
-        public WeatherForecastApiClient(HttpClient httpClient, IHttpClientAuthenticator httpClientAuthenticator)
+        private async Task<WeatherForecast[]> _GetForecastAsync()
         {
-            _httpClient = httpClient;
-            _httpClientAuthenticator = httpClientAuthenticator;
-        }
-
-        public async Task<WeatherForecast[]> GetForecastAsync()
-        {
-            await _httpClientAuthenticator.PrepareHttpClientAsync(_httpClient);
-
             var response = await _httpClient.GetAsync("/weatherforecast");
 
             if (response.IsSuccessStatusCode)
