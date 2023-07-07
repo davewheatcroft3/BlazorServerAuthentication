@@ -71,6 +71,7 @@ namespace BlazerServerAuthentication
                 .AddOpenIdConnect(options =>
                 {
                     options.ResponseType = settings.ResponseType;
+                    options.Authority = settings.Authority;
                     options.MetadataAddress = settings.MetadataAddress;
                     options.ClientId = settings.ClientId;
                     options.ClientSecret = settings.ClientSecret;
