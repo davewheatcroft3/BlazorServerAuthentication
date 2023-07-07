@@ -7,7 +7,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
-namespace BlazorAuthenticate.SourceGeneration
+namespace BlazorServerAuthentication.SourceGeneration
 {
     [Generator]
     public class BlazorAuthenticateApiClientGenerator : ISourceGenerator
@@ -18,7 +18,7 @@ namespace BlazorAuthenticate.SourceGeneration
         private const string classAttributeText = @"
 using System;
 
-namespace BlazorAuthenticate
+namespace BlazorServerAuthentication
 {
     [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
     sealed class BlazorAuthenticatedApiClientAttribute : Attribute
@@ -33,7 +33,7 @@ namespace BlazorAuthenticate
         private const string methodAttributeText = @"
 using System;
 
-namespace BlazorAuthenticate
+namespace BlazorServerAuthentication
 {
     [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
     sealed class BlazorDontAuthenticateAttribute : Attribute
@@ -47,12 +47,12 @@ namespace BlazorAuthenticate
 
         public void Initialize(GeneratorInitializationContext context)
         {
-#if DEBUG
+/*#if DEBUG
             if (!Debugger.IsAttached)
             {
                 Debugger.Launch();
             }
-#endif
+#endif*/
         }
 
         public void Execute(GeneratorExecutionContext context)

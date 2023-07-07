@@ -1,6 +1,6 @@
 ﻿using BlazorServerAuthentication;
 
-namespace BlazorAuthenticate.SourceGeneration.Test
+namespace BlazorServerAuthentication.SourceGeneration.Test
 {
     [BlazorAuthenticatedApiClient]
     public partial class ApiClient
