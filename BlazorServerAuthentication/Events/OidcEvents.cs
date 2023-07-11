@@ -1,4 +1,3 @@
-using BlazerServerAuthentication;
 using BlazerServerAuthentication.Configuration;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -9,23 +8,9 @@ namespace BlazorServer.Events;
 
 public class OidcEvents : OpenIdConnectEvents
 {
-    private readonly ITokenProvider _tokenProvider;
-
-    public OidcEvents(ITokenProvider tokenProvider)
+    public OidcEvents()
     {
-        _tokenProvider = tokenProvider;
-
         OnRedirectToIdentityProviderForSignOut = CustomRedirectToIdentityProviderForSignOut;
-    }
-
-    public override async Task TokenValidated(TokenValidatedContext context)
-    {
-        await _tokenProvider.SetTokensAsync(context.Principal!, new Tokens(
-            context.TokenEndpointResponse?.IdToken,
-            context.TokenEndpointResponse?.AccessToken,
-            context.TokenEndpointResponse?.RefreshToken));
-        
-        await base.TokenValidated(context);
     }
 
     private Task CustomRedirectToIdentityProviderForSignOut(RedirectContext context)

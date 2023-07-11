@@ -70,18 +70,15 @@ namespace BlazerServerAuthentication
                 })
                 .AddOpenIdConnect(options =>
                 {
+                    options.ClientId = settings.ClientId;
+                    options.ClientSecret = settings.ClientSecret;
                     options.ResponseType = settings.ResponseType;
                     options.Authority = settings.Authority;
                     options.MetadataAddress = settings.MetadataAddress;
-                    options.ClientId = settings.ClientId;
-                    options.ClientSecret = settings.ClientSecret;
                     options.RequireHttpsMetadata = settings.RequireHttpsMetadata;
                     options.GetClaimsFromUserInfoEndpoint = true;
                     options.SaveTokens = true;
                     options.EventsType = typeof(OidcEvents);
-
-                    options.MapInboundClaims = false;
-                    options.ResponseMode = "query";
                 });
             
             services.AddScoped<JwtService>();
