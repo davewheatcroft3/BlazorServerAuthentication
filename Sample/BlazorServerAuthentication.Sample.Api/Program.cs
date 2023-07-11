@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,7 +17,6 @@ builder.Services
     })
     .AddJwtBearer(options =>
     {
-        options.Audience = builder.Configuration["Authentication:Audience"];
         options.Authority = builder.Configuration["Authentication:Authority"];
         options.MetadataAddress = builder.Configuration["Authentication:MetadataAddress"]!;
         options.RequireHttpsMetadata = false;
@@ -29,7 +27,7 @@ builder.Services
             ValidateIssuer = true,
             ValidIssuer = builder.Configuration["Authentication:Issuer"],
             ValidateAudience = true,
-            ValidAudience = builder.Configuration["Authentication:ClientId"]
+            ValidAudience = builder.Configuration["Authentication:Audience"]
         };
     });
 builder.Services.AddAuthorization();

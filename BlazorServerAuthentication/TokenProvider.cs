@@ -29,26 +29,28 @@ namespace BlazerServerAuthentication
 
         public Task<Tokens?> GetTokensAsync(ClaimsPrincipal user)
         {
-            var sub = user.FindFirst(_settings.UserIdentifierClaimName)?.Value;
+            var idClaim = user.FindFirst(_settings.UserIdentifierClaimName)?.Value;
+            ThrowIfClaimsPresentIdClaimNull(user, idClaim);
 
-            if (sub != null)
+            if (idClaim != null)
             {
-                if (_tokens.TryGetValue(sub, out var value))
+                if (_tokens.TryGetValue(idClaim!, out var value))
                 {
                     return Task.FromResult<Tokens?>(value);
                 }
             }
-
+           
             return Task.FromResult<Tokens?>(null);
         }
 
         public Task SetTokensAsync(ClaimsPrincipal user, Tokens tokens)
         {
-            var sub = user.FindFirst(_settings.UserIdentifierClaimName)?.Value;
+            var idClaim = user.FindFirst(_settings.UserIdentifierClaimName)?.Value;
+            ThrowIfClaimsPresentIdClaimNull(user, idClaim);
 
-            if (sub != null)
+            if (idClaim != null)
             {
-                _tokens[sub] = tokens;
+                _tokens[idClaim] = tokens;
             }
 
             return Task.CompletedTask;
@@ -56,14 +58,26 @@ namespace BlazerServerAuthentication
 
         public Task ClearTokensAsync(ClaimsPrincipal user)
         {
-            var sub = user.FindFirst(_settings.UserIdentifierClaimName)?.Value;
+            var idClaim = user.FindFirst(_settings.UserIdentifierClaimName)?.Value;
+            ThrowIfClaimsPresentIdClaimNull(user, idClaim);
 
-            if (sub != null)
+            if (idClaim != null)
             {
-                _tokens.Remove(sub, out _);
+                _tokens.Remove(idClaim!, out _);
             }
 
             return Task.CompletedTask;
+        }
+
+        private void ThrowIfClaimsPresentIdClaimNull(ClaimsPrincipal user, string? idClaim)
+        {
+            if (user.Claims.Any() && idClaim == null)
+            {
+                throw new Exception(
+                    $"No claim found matching the name {_settings.UserIdentifierClaimName} given in the OAuthSettings.UserIdentifierClaimName property." +
+                    $" You must ensure this is a valid claim key available in your given tokens. Because Blazor Server has no reliable of storing" +
+                    $"user data (local storage or cookies have downsides) we use this to keep hold of user data on the running Blazor server instance.");
+            }
         }
     }
 }

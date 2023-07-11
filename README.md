@@ -17,7 +17,9 @@ So essentially we perform token checks and store the results in the Oidc OnToken
 
 NOTE (1): The only other step I think can feasibly be removed is the dependency on IHttpClientAuthenticator in your API Clients. Ive looked at source generation but that still requires addition to your code. Any other ideas welcome! 
 
-NOTE (2): I believe in .NET 8 Authentication is being re-vamped to not rely on HttpContext, which will likely make most
+NOTE (2): To run the sample project, ensure both the Api AND Website are running for the FetchData page to work.
+
+NOTE (3): I believe in .NET 8 Authentication is being re-vamped to not rely on HttpContext, which will likely make most
 of this redundant, but until then!
 
 ## Installation
@@ -51,12 +53,12 @@ await _httpClientAuthenticator.PrepareHttpClientAsync(_httpClient);
       "ClientId": "<auth provider client id>",
       "ClientSecret": "<auth provider client secret>",
       "MetadataAddress": "<something like: auth provider url>/.well-known/openid-configuration",
-      "Domain": "<auth provider url>",
-      "TokenUrl": "<something like: auth provider url>/oauth2/token",
+      "Authority": "<auth provider url>",
       "RequireHttpsMetadata": false, // Can toggle based on whether in development or production
       "ResponseType": "<oauth grant type>",
-      "CallbackPath": "<relative route for login complete callback>",
-      "SignOutUrl": "<relative route for sign out callback 9optional)>"
+      "SignOutPath": "<relative route for sign out callback (optional)>"
+      "LogoutUrl": "<something like: auth provider url>/logout>",
+      "TokenUrl": "<something like: auth provider url>/oauth2/token>"
     }
   }
 ```
